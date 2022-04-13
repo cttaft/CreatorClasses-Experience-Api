@@ -1,0 +1,6 @@
+{
+    "git.ignoreLimitWarning": true,
+    "appService.preDeployTask": "publish-release",
+    "appService.deploySubpath": "CreatorClasses-Experience-API\\bin\\Release\\net6.0\\publish",
+    "appService.defaultWebAppToDeploy": "/subscriptions/59dc6cd9-cb94-446a-ae33-1b73bb867e50/resourceGroups/appsvc_windows_centralus_basic/providers/Microsoft.Web/sites/creator-classes-experience-api"
+}
