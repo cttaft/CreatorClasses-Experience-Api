@@ -2,12 +2,16 @@ using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.Resource;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi.Models;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAdB2C"));
 builder.Services.AddCors(options => options.AddPolicy("allowAny", o => o.AllowAnyOrigin()));
 builder.Services.AddAuthorization();
+
+var connectionString = builder.Configuration.GetValue<string>("CosmosConnectionString" );
+builder.Services.AddCosmos<ClassesDb>(connectionString, "classes");
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -54,50 +58,108 @@ app.UseAuthorization();
 
 
 
-app.MapGet("/classes", () =>
+app.MapGet("/classes", async (ClassesDb db) =>
 {
-    var classes = new List<CreatorClass>() {new CreatorClass(1234, "How to train your yorkie",
-    "https://www.petplate.com/wp-content/uploads/2021/03/AdobeStock_236757188.jpeg",
-    "A great class about great dogs!", new List<Video>{new Video(555, "Intro", "Getting Started with your furry pal", "https://www.youtube.com/watch?v=_9CUjcf0NSI", 605),
-    new Video(654, "Potty Traing, PU", "Get your dog going where he needs to!", "https://www.youtube.com/watch?v=V4iOkvBWTys", 12001)}.ToArray(), 1),
-    new CreatorClass(2345, "Nailing Jello to a Wall", "https://linkedstrategies.com/wp-content/uploads/2020/05/Why-cant-I-make-this-work-scaled.jpg", "How to do the impossible!",
-    new List<Video>{new Video(620, "Intro", "Can it be done?", "https://www.youtube.com/watch?v=8ePy_mnH774", 605)}.ToArray(), 1)};
-    return classes;
+    var classesFromDb = await db.Classes.ToListAsync();
+    var classResponse = new List<CreatorClassTest>();
+    foreach (var cl in classesFromDb)
+    {
+        var videos = await db.Videos.Where(a => a.Id == cl.Id).ToListAsync();
+        classResponse.Add(new CreatorClassTest(int.Parse(cl.Id), cl.Name, cl.ImageSrc, cl.Description,
+            videos.Select(v => new VideoTest(int.Parse(v.VideoId), v.Name, v.Description, v.VideoSrc, v.Seconds)).ToArray(),
+            cl.CreatorId));
+
+    }
+    return classResponse;
 })
 .WithName("GetClasses");
 
-app.MapGet("user/classes", (HttpContext context) =>
+
+
+app.MapGet("/classes/{id}", async (ClassesDb db, string id) =>
+{
+    var classFromDb = await db.Classes.SingleAsync(a => a.Id == id);
+    
+    return classFromDb;
+})
+.WithName("GetClass");
+
+
+app.MapGet("/subscriptions", async (ClassesDb db, HttpContext context) =>
 {
     context.VerifyUserHasAnyAcceptedScope(new string[] { "access_as_user" });
 
-    var classes = new List<CreatorClass>() {new CreatorClass(1234, "How to train your yorkie",
-    "https://www.petplate.com/wp-content/uploads/2021/03/AdobeStock_236757188.jpeg",
-    "A great class about great dogs!", new List<Video>{new Video(555, "Intro", "Getting Started with your furry pal", "https://www.youtube.com/watch?v=_9CUjcf0NSI", 605),
-    new Video(654, "Potty Traing, PU", "Get your dog going where he needs to!", "https://www.youtube.com/watch?v=V4iOkvBWTys", 12001)}.ToArray(), 1),
-    new CreatorClass(2345, "Nailing Jello to a Wall", "https://linkedstrategies.com/wp-content/uploads/2020/05/Why-cant-I-make-this-work-scaled.jpg", "How to do the impossible!",
-    new List<Video>{new Video(620, "Intro", "Can it be done?", "https://www.youtube.com/watch?v=8ePy_mnH774", 605)}.ToArray(), 1)};
-    return classes;
+    var classesFromDb = await db.Classes.ToListAsync();
+    var classResponse = new List<CreatorClassTest>();
+    foreach (var cl in classesFromDb)
+    {
+        var videos = await db.Videos.Where(a => a.Id == cl.Id).ToListAsync();
+        classResponse.Add(new CreatorClassTest(int.Parse(cl.Id), cl.Name, cl.ImageSrc, cl.Description,
+            videos.Select(v => new VideoTest(int.Parse(v.VideoId), v.Name, v.Description, v.VideoSrc, v.Seconds)).ToArray(),
+            cl.CreatorId));
+
+    }
+    return classResponse;
 })
-.WithName("GetClassesForUser").RequireAuthorization();
+.WithName("GetSubscriptions").RequireAuthorization();
 
 app.Run();
 
-record CreatorClass(int classId, string className, string classImage, string classDescription, Video[] videos, int creatorId)
+record CreatorClassTest(int classId, string className, string classImage, string classDescription, VideoTest[] videos, int creatorId)
 {
     public int ClassId = classId;
     public string ClassName = className;
     public string ClassImage = classImage;
     public string ClassDescription = classDescription;
-    public Video[] Videos = videos;
+    public VideoTest[] Videos = videos;
     public int CratorId = creatorId;
 }
 
-record Video(int videoId, string title, string description, string videoSrc, int seconds)
+public class CreatorClass
+{
+    public CreatorClass()
+    {
+
+    }
+    public string Id { get; set; }
+    public string Name { get; set; }
+    public string ImageSrc { get; set; }
+    public string Description { get; set; }
+    public int CreatorId { get; set; }
+}
+
+public class Video
+{
+    public Video()
+    {
+
+    }
+    public string Id { get; set; }
+    public string VideoId { get; set; }
+    public string Name { get; set; }
+    public string VideoSrc { get; set; }
+    public string Description { get; set; }
+    public int CreatorId { get; set; }
+
+    public int Seconds { get; set; }
+}
+
+record VideoTest(int videoId, string title, string description, string videoSrc, int seconds)
 {
     public int VideoId = videoId;
     public string Title = title;
     public string Description = description;
     public string VideoSrc = videoSrc;
     public int Seconds = seconds;
+}
+
+class ClassesDb : DbContext
+{
+    public ClassesDb(DbContextOptions options) : base(options) { }
+    public DbSet<CreatorClass> Classes { get; set; }
+
+    public DbSet<Video> Videos { get; set; }
+
+
 }
 
