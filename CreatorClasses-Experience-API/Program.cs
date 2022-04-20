@@ -179,7 +179,6 @@ app.MapPost("/classes/{id}/picture", async (ClassesDb db, HttpContext context, H
     {
         using (var image = Image.Load(req.Form.Files.FirstOrDefault().OpenReadStream()))
         {
-            image.Mutate(a => a.Resize(180, 180));
 
             await image.SaveAsJpegAsync(memoryStream);
         }
@@ -349,7 +348,7 @@ app.MapPost("/creatorProfile/Picture", async (ClassesDb db, HttpRequest req, Htt
     {
         using (var image = Image.Load(req.Form.Files.FirstOrDefault().OpenReadStream()))
         {
-
+            image.Mutate(a => a.Resize(180, 180));
             await image.SaveAsJpegAsync(memoryStream);
         }
         memoryStream.Position = 0;
