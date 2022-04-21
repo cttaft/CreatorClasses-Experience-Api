@@ -8,6 +8,7 @@ using Azure.Identity;
 using Azure.Storage.Blobs;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
+using Azure.Messaging.ServiceBus;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,8 +21,10 @@ builder.Services.AddCors(options => options.AddPolicy("allowAny", o =>
  }));
 builder.Services.AddAuthorization();
 
-var connectionString = builder.Configuration.GetValue<string>("CosmosConnectionString");
-builder.Services.AddCosmos<ClassesDb>(connectionString, "classes");
+var cosmosConnectionString = builder.Configuration.GetValue<string>("CosmosConnectionString");
+builder.Services.AddCosmos<ClassesDb>(cosmosConnectionString, "classes");
+
+var sbConnectionString = builder.Configuration.GetValue<string>("SBConnectionString");
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -226,6 +229,13 @@ app.MapPost("/classes/{id}/videos", async (ClassesDb db, HttpContext context, in
 
    await db.SaveChangesAsync();
 
+   //Send message..
+    var client = new ServiceBusClient(sbConnectionString);
+    var sender = client.CreateSender("new-video-q");
+
+    await sender.SendMessageAsync(new ServiceBusMessage(id.ToString()));
+
+
    return Results.Ok();
 
 
@@ -261,12 +271,14 @@ app.MapPost("/subscriptions", async ([FromBody] SubscriptionRequest subRequest, 
 {
     context.VerifyUserHasAnyAcceptedScope(new string[] { "access_as_user" });
     var userId = context.User.GetObjectId();
+    var emails = context.User.Claims.FirstOrDefault(c => c.Type == "emails").Value;
 
     db.Subscriptions.Add(new Subscription
     {
         Id = subRequest.ClassId.ToString() + ":" + userId,
         UserId = userId,
-        ClassId = subRequest.ClassId.ToString()
+        ClassId = subRequest.ClassId.ToString(),
+        EmailAddress = emails
     });
 
     await db.SaveChangesAsync();
@@ -394,6 +406,7 @@ app.Run();
 public class SubscriptionRequest
 {
     public int ClassId { get; set; }
+    public string EmailAddress{get;set;}
 }
 
 record CreatorClassDto(int classId, string className, string classImage, string classDescription, VideoDto[] videos, int creatorId)
@@ -412,6 +425,8 @@ public class Subscription
     public string UserId { get; set; }
 
     public string ClassId { get; set; }
+
+    public string EmailAddress{get;set;}
 }
 
 public class CreatorClass
