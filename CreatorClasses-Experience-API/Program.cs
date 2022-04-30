@@ -287,6 +287,24 @@ app.MapPost("/subscriptions", async ([FromBody] SubscriptionRequest subRequest, 
 .WithName("Subscribe").RequireAuthorization();
 
 
+app.MapDelete("/subscriptions/[id]", async (string id, ClassesDb db, HttpContext context) =>
+{
+    context.VerifyUserHasAnyAcceptedScope(new string[] { "access_as_user" });
+    var userId = context.User.GetObjectId();
+
+    var sub =db.Subscriptions.FirstOrDefault(a => a.ClassId == id);
+    if(sub != null)
+    {
+
+        db.Subscriptions.Remove(sub);
+        
+        await db.SaveChangesAsync();
+    }
+    return Results.NoContent();
+})
+.WithName("DeleteSubscription").RequireAuthorization();
+
+
 app.MapGet("/creatorProfile", async (ClassesDb db, HttpContext context) =>
 {
     context.VerifyUserHasAnyAcceptedScope(new string[] { "access_as_user" });
