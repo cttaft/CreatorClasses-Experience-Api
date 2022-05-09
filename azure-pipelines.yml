@@ -10,10 +10,10 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+- task: AzureRmWebAppDeployment@4
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: 'Azure subscription 1(59dc6cd9-cb94-446a-ae33-1b73bb867e50)'
+    appType: 'webApp'
+    WebAppName: 'creator-classes-experience-api'
+    packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'
