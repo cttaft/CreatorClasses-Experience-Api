@@ -20,6 +20,7 @@ steps:
     command: 'publish'
     publishWebProjects: true
     arguments: '--configuration Release'
+
 - task: AzureRmWebAppDeployment@4
   inputs:
     ConnectionType: 'AzureRM'
@@ -27,3 +28,5 @@ steps:
     appType: 'webApp'
     WebAppName: 'creator-classes-experience-api'
     packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'
+    enableCustomDeployment: true
+    DeploymentType: 'zipDeploy'
