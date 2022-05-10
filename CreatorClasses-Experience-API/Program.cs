@@ -286,7 +286,7 @@ app.MapPost("/subscriptions", async ([FromBody] SubscriptionRequest subRequest, 
 .WithName("Subscribe").RequireAuthorization();
 
 
-app.MapDelete("/subscriptions/[id]", async (string id, ClassesDb db, HttpContext context) =>
+app.MapDelete("/subscriptions/{id}", async (string id, ClassesDb db, HttpContext context) =>
 {
     context.VerifyUserHasAnyAcceptedScope(new string[] { "access_as_user" });
     var userId = context.User.GetObjectId();
