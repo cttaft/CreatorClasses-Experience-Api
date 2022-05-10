@@ -9,7 +9,7 @@ using Azure.Storage.Blobs;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using Azure.Messaging.ServiceBus;
-
+ 
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
