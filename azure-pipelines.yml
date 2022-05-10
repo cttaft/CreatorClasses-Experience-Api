@@ -10,16 +10,11 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-- task: DotNetCoreCLI@2
-  inputs:
-    command: 'build'
-    projects: '**/*.csproj'
 
 - task: DotNetCoreCLI@2
   inputs:
     command: 'publish'
     publishWebProjects: true
-    arguments: '--configuration Release'
 
 
 - task: AzureWebApp@1
