@@ -12,9 +12,12 @@ pool:
 steps:
 - task: DotNetCoreCLI@2
   inputs:
+    command: 'build'
+    projects: '/**/*.csproj'
+- task: DotNetCoreCLI@2
+  inputs:
     command: 'publish'
     publishWebProjects: true
-    workingDirectory: '/CreatorClasses-Experience-API'
 - task: AzureRmWebAppDeployment@4
   inputs:
     ConnectionType: 'AzureRM'
